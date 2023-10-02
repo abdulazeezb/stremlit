@@ -40,7 +40,61 @@ st.markdown(
 )
 
 st.title("Financial Report")
+
+
+# Style settings
+text_style = """
+<style>
+    .big-font {
+        font-weight: bold;
+        font-size: 16px;
+        color: #e0e0e0;  /* Light gray color for better visibility on dark background */
+    }
+    .custom-card {
+        background-color: #333333;  /* Darker gray color for card background */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);  /* Optional: Adds a subtle shadow to the card */
+    }
+    .custom-card ul {
+        list-style-type: disc;  /* Defines the type of the list item marker */
+        padding-left: 20px;  /* Adjusts the padding to indent the bullet points */
+    }
+    .custom-card li {
+        margin-bottom: 10px;  /* Adds space between list items */
+    }
+</style>
+"""
+
+st.markdown(text_style, unsafe_allow_html=True)
+
+# Basic card-like UI using expander without automatically expanding it.
+with st.expander("Rules", expanded=False):
+    with st.container():
+        st.markdown("""<div class='custom-card'> <p class='big-font'>This is a modernized description inside the 
+        card.</p> <ul> <li>Focus on only 10 points</li> <li>Book profits quickly, don't be greedy</li> <li>Have less 
+        risk appetite</li> <li>Always prioritize capital preservation. Utilize stop-loss orders</li> <li>Maximum loss 
+        for a day is 10 percent of current capital</li> <li>Avoid over trading: Trading too frequently or with 
+        excessive volume can lead to increased costs and risks.</li> <li>Aim for a consistent profit target per 
+        trade, like 10 points, ensuring it aligns with the average volatility of the instrument being traded.</li> 
+        <li>If cumulative losses reach 10% of the capital for the day, halt trading to prevent emotional 
+        decisions.</li> <li>Use stop-loss orders for every trade and consistently update Good Till Triggered (GTT) 
+        orders to manage and mitigate risks.</li> <li>Avoid the urge to recover all losses in one trade. This often 
+        leads to high-risk behaviors and emotional decisions.</li> <li>Only risk 1-2% of your total trading capital 
+        per trade to ensure capital preservation.</li>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+
+
+
+
+
+
 fl = st.file_uploader(":file_folder: Upload a file", type=(["csv"]))
+
 
 if fl is not None:
     file_extension = fl.name.split('.')[-1].lower()
@@ -160,7 +214,7 @@ if fl is not None:
             max_daily_amount_used,
             x='buy_date',
             y='amount_used',
-            
+
             title='Maximum Amount Used on Each Day',
         ).update_traces(marker=dict(size=12, color='red'), mode='lines+markers').update_layout(title_x=0.5)
 
