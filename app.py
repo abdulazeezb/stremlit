@@ -24,7 +24,11 @@ def required_profit_to_break_even(original_amount, amount):
     return round(percentage_profit_needed, 2), round(profit)
 
 
-positional_trades = ["", ""]
+positional_trades = ["DABUR23SEP590CE", "ABCAPITAL23OCT195CE", "ABCAPITAL23SEP220CE", "ADANIENT23OCT2550CE",
+                     "ATUL23OCT7200CE",
+                     "HDFCLIFE23OCT600PE", "GUJGASLTD23OCT440CE", "INDIAMART23OCT3000CE", "LICHSGFIN23OCT500CE",
+                     "SIEMENS23OCT3700CE",
+                     ""]
 warnings.filterwarnings('ignore')
 st.set_page_config(page_title="Financial Report", page_icon=":moneybag:", layout="wide")
 # Centering the title using CSS
@@ -40,7 +44,6 @@ st.markdown(
 )
 
 st.title("Financial Report")
-
 
 # Style settings
 text_style = """
@@ -85,15 +88,90 @@ with st.expander("Rules", expanded=False):
         </div>
         """, unsafe_allow_html=True)
 
-
-
-
-
-
-
-
-
 fl = st.file_uploader(":file_folder: Upload a file", type=(["csv"]))
+
+
+def combine_intraday(data):
+    group_symbol = data.groupby('symboldate')
+    index = 0
+    all_dict = {}
+    for symbol in group_symbol.groups:
+        all_dict[index] = {}
+        all_dict[index]['SYMBOL'] = symbol
+        symbol_df = group_symbol.get_group(symbol)
+        group_symbol_transact = symbol_df.groupby('trade_type')
+
+        try:
+            symbol_buy_df = group_symbol_transact.get_group('buy')
+            buy_quantity = symbol_buy_df['quantity'].sum()
+            buy_date = datetime.strptime(str(symbol_buy_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
+            print(buy_date)
+            buy_sum = (symbol_buy_df['price'] * symbol_buy_df['quantity']).sum()
+            buy_avg = np.round(buy_sum / buy_quantity, 3)
+            all_dict[index]['SYMBOL'] = symbol_buy_df['symbol'].to_list()[0]
+            all_dict[index]['buy_qty'] = buy_quantity
+            all_dict[index]['buy_date'] = buy_date
+            all_dict[index]['buy_avg'] = buy_avg
+        except:
+            print("error")
+        try:
+            symbol_sell_df = group_symbol_transact.get_group('sell')
+            sell_quantity = symbol_sell_df['quantity'].sum()
+            sell_date = datetime.strptime(str(symbol_sell_df["trade_date"].to_list()[0]),
+                                          "%Y-%m-%d %H:%M:%S").date()
+            sell_sum = (symbol_sell_df['price'] * symbol_sell_df['quantity']).sum()
+            sell_avg = np.round(sell_sum / sell_quantity, 3)
+        except:
+            sell_quantity = 0
+            sell_date = "1995-10-03"
+            sell_avg = 0
+        all_dict[index]['sell_qty'] = sell_quantity
+        all_dict[index]['sell_date'] = sell_date
+
+        all_dict[index]['sell_avg'] = sell_avg
+        index += 1
+    return all_dict
+
+
+def combine_positional(data):
+    group_symbol = data.groupby('symbol')
+    index = 0
+    all_dict = {}
+    for symbol in group_symbol.groups:
+        all_dict[index] = {}
+        all_dict[index]['SYMBOL'] = symbol
+        symbol_df = group_symbol.get_group(symbol)
+        group_symbol_transact = symbol_df.groupby('trade_type')
+
+        try:
+            symbol_buy_df = group_symbol_transact.get_group('buy')
+            buy_quantity = symbol_buy_df['quantity'].sum()
+            buy_date = datetime.strptime(str(symbol_buy_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
+            print(buy_date)
+            buy_sum = (symbol_buy_df['price'] * symbol_buy_df['quantity']).sum()
+            buy_avg = np.round(buy_sum / buy_quantity, 3)
+            all_dict[index]['buy_qty'] = buy_quantity
+            all_dict[index]['buy_date'] = buy_date
+            all_dict[index]['buy_avg'] = buy_avg
+        except:
+            print("error")
+        try:
+            symbol_sell_df = group_symbol_transact.get_group('sell')
+            sell_quantity = symbol_sell_df['quantity'].sum()
+            sell_date = datetime.strptime(str(symbol_sell_df["trade_date"].to_list()[0]),
+                                          "%Y-%m-%d %H:%M:%S").date()
+            sell_sum = (symbol_sell_df['price'] * symbol_sell_df['quantity']).sum()
+            sell_avg = np.round(sell_sum / sell_quantity, 3)
+        except:
+            sell_quantity = 0
+            sell_date = "1995-10-03"
+            sell_avg = 0
+        all_dict[index]['sell_qty'] = sell_quantity
+        all_dict[index]['sell_date'] = sell_date
+
+        all_dict[index]['sell_avg'] = sell_avg
+        index += 1
+    return all_dict
 
 
 if fl is not None:
@@ -104,9 +182,10 @@ if fl is not None:
         df = pd.read_csv(fl, encoding="ISO-8859-1")
         invested_amount = int(st.number_input("Invested Amount"))
         if invested_amount == 0.00:
-            invested_amount = 120000
+            invested_amount = 220000
 
         col1, col2 = st.columns(2)
+        df["symboldate"] = df["symbol"] + df["trade_date"]
         df["trade_date"] = pd.to_datetime(df["trade_date"])
         # Getting the min and max date
         startDate = pd.to_datetime(df["trade_date"]).min()
@@ -117,43 +196,17 @@ if fl is not None:
             date2 = pd.to_datetime(st.date_input("End Date", endDate))
 
         # df = df[(df["trade_date"] >= date1) & (df["trade_date"] <= date2)].copy()
-        data = df.copy()
-        group_symbol = data.groupby('symbol')
-        INDEX = 0
-        ALL_DICT = {}
-        for symbol in group_symbol.groups:
-            ALL_DICT[INDEX] = {}
-            ALL_DICT[INDEX]['SYMBOL'] = symbol
-            symbol_df = group_symbol.get_group(symbol)
-            group_symbol_transact = symbol_df.groupby('trade_type')
 
-            try:
-                symbol_buy_df = group_symbol_transact.get_group('buy')
-                buy_quantity = symbol_buy_df['quantity'].sum()
-                buy_date = datetime.strptime(str(symbol_buy_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
-                buy_sum = (symbol_buy_df['price'] * symbol_buy_df['quantity']).sum()
-                buy_avg = np.round(buy_sum / buy_quantity, 3)
-                ALL_DICT[INDEX]['buy_qty'] = buy_quantity
-                ALL_DICT[INDEX]['buy_date'] = buy_date
-                ALL_DICT[INDEX]['buy_avg'] = buy_avg
-            except:
-                print("error")
+        ALL_DICT_intraday = combine_intraday(df.loc[~df["symbol"].isin(positional_trades)])
+        ALL_DICT_posit = combine_positional(df.loc[df["symbol"].isin(positional_trades)])
 
-            symbol_sell_df = group_symbol_transact.get_group('sell')
-            sell_quantity = symbol_sell_df['quantity'].sum()
-            sell_date = datetime.strptime(str(symbol_sell_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
-            sell_sum = (symbol_sell_df['price'] * symbol_sell_df['quantity']).sum()
-            sell_avg = np.round(sell_sum / sell_quantity, 3)
+        intra_df = pd.DataFrame.from_dict(ALL_DICT_intraday, orient='index')
+        posit_df = pd.DataFrame.from_dict(ALL_DICT_posit, orient='index')
 
-            ALL_DICT[INDEX]['sell_qty'] = sell_quantity
-            ALL_DICT[INDEX]['sell_date'] = sell_date
-
-            ALL_DICT[INDEX]['sell_avg'] = sell_avg
-            INDEX += 1
-
-        df = pd.DataFrame.from_dict(ALL_DICT, orient='index')
+        df = pd.concat([intra_df, posit_df], ignore_index=True)
         df["sell_date"] = pd.to_datetime(df["sell_date"])
-        #closed Position
+        # closed Position
+        df_1 = df[df['buy_qty'] != df['sell_qty']].copy()
         df = df[df['buy_qty'] == df['sell_qty']].copy()
         df = df[(df["sell_date"] >= date1) & (df["sell_date"] <= date2)].copy()
 
@@ -167,6 +220,11 @@ if fl is not None:
         df["amount_used"] = df['buy_qty'] * df['buy_avg']
         st.dataframe(df, use_container_width=True)
 
+        st.dataframe(df_1, use_container_width=True)
+        if df_1.shape[0] > 0:
+            amount_on_open_trade = (df_1['buy_qty'] * df_1['buy_avg']).sum()
+        else:
+            amount_on_open_trade = 0
         total_profit = df['P/L'].sum()
         print(total_profit)
         max_loss = round(df['P/L'].min(), 2)
@@ -177,21 +235,22 @@ if fl is not None:
         loss_count = (df['P/L'] <= 0).sum()
 
         # Daily changes in profit
-        daily_profit = df.groupby('buy_date')['P/L'].sum().reset_index()
+        daily_profit = df.groupby('sell_date')['P/L'].sum().reset_index()
+        print(daily_profit)
         cumulative_profit = daily_profit['P/L'].cumsum()  # Calculate cumulative profit
         max_daily_amount_used = df.groupby('buy_date')['amount_used'].max().reset_index()
         color_map = {True: 'green', False: 'red'}
         figure = {
             'data': [
                 go.Scatter(
-                    x=daily_profit['buy_date'],
+                    x=daily_profit['sell_date'],
                     y=cumulative_profit,  # Use cumulative profit data
                     mode='lines',
                     name='Cumulative Profit',
                     line=dict(color='blue'),  # Color of the line plot
                 ),
                 go.Scatter(
-                    x=daily_profit['buy_date'],
+                    x=daily_profit['sell_date'],
                     y=cumulative_profit,  # Use cumulative profit data
                     mode='markers',
                     name='Cumulative Profit',
@@ -200,6 +259,14 @@ if fl is not None:
                         color=[color_map[val >= 0] for val in daily_profit['P/L']]
                     ),
                     showlegend=False,  # Remove the legend entry for this trace
+                ),
+                go.Bar(
+                    x=daily_profit['sell_date'],
+                    y=daily_profit['P/L'],  # Daily profit data
+                    name='Daily Profit',
+                    marker=dict(
+                        color=[color_map[val >= 0] for val in daily_profit['P/L']]
+                    ),
                 ),
             ],
             'layout': {
@@ -219,8 +286,11 @@ if fl is not None:
         ).update_traces(marker=dict(size=12, color='red'), mode='lines+markers').update_layout(title_x=0.5)
 
         # Example usage:
-        current_amount = invested_amount + total_profit
-        percentage_needed, required_profit = required_profit_to_break_even(invested_amount, current_amount)
+        current_amount = (invested_amount + total_profit) - amount_on_open_trade
+        percentage_needed, required_profit = required_profit_to_break_even(invested_amount - amount_on_open_trade,
+                                                                           current_amount)
+        percentage_needed_posit, required_profit_posit = required_profit_to_break_even(invested_amount - current_amount,
+                                                                                       amount_on_open_trade)
         percentage_needed = 0 if percentage_needed < 0 else percentage_needed
         required_profit = 0 if required_profit < 0 else required_profit
 
@@ -271,6 +341,7 @@ if fl is not None:
                 "Invested Amount": [invested_amount, ""],
                 "Max Loss": ["", max_loss],
                 "% Required to BreakEven": [percentage_needed, ""],
+                "Amt on Open Trade": [amount_on_open_trade, ""]
             }
             st.markdown('<div id="pushed-content">', unsafe_allow_html=True)
             for key, (value, change) in metrics.items():
@@ -287,6 +358,7 @@ if fl is not None:
                     round(current_amount, 2), percentage_difference(current_amount, invested_amount)],
                 "Max Profit": [max_profit, ""],
                 "Amount Required to BreakEven": [required_profit, ""],
+                "Expected Return": [percentage_needed_posit, ""]
             }
             st.markdown('<div id="pushed-content">', unsafe_allow_html=True)
             for key, (value, change) in metrics.items():
