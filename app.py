@@ -105,7 +105,6 @@ def combine_intraday(data):
             symbol_buy_df = group_symbol_transact.get_group('buy')
             buy_quantity = symbol_buy_df['quantity'].sum()
             buy_date = datetime.strptime(str(symbol_buy_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
-            print(buy_date)
             buy_sum = (symbol_buy_df['price'] * symbol_buy_df['quantity']).sum()
             buy_avg = np.round(buy_sum / buy_quantity, 3)
             all_dict[index]['SYMBOL'] = symbol_buy_df['symbol'].to_list()[0]
@@ -147,7 +146,6 @@ def combine_positional(data):
             symbol_buy_df = group_symbol_transact.get_group('buy')
             buy_quantity = symbol_buy_df['quantity'].sum()
             buy_date = datetime.strptime(str(symbol_buy_df["trade_date"].to_list()[0]), "%Y-%m-%d %H:%M:%S").date()
-            print(buy_date)
             buy_sum = (symbol_buy_df['price'] * symbol_buy_df['quantity']).sum()
             buy_avg = np.round(buy_sum / buy_quantity, 3)
             all_dict[index]['buy_qty'] = buy_quantity
@@ -226,7 +224,6 @@ if fl is not None:
         else:
             amount_on_open_trade = 0
         total_profit = df['P/L'].sum()
-        print(total_profit)
         max_loss = round(df['P/L'].min(), 2)
         max_loss = max_loss if max_loss < 0 else 0
         max_profit = round(df['P/L'].max(), 2)
@@ -236,7 +233,6 @@ if fl is not None:
 
         # Daily changes in profit
         daily_profit = df.groupby('sell_date')['P/L'].sum().reset_index()
-        print(daily_profit)
         cumulative_profit = daily_profit['P/L'].cumsum()  # Calculate cumulative profit
         max_daily_amount_used = df.groupby('buy_date')['amount_used'].max().reset_index()
         color_map = {True: 'green', False: 'red'}
