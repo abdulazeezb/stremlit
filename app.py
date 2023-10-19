@@ -221,10 +221,10 @@ def main_page():
                 sell_quantity = 1800
                 sell_date = datetime.datetime.strptime(str("2023-10-11 00:00:00"), "%Y-%m-%d %H:%M:%S").date()
                 sell_avg = 16.900
-            if symbol == "NIFTY23O1919650CE":
+            if symbol == "NIFTY23O1919650CE2023-10-19":
                 sell_quantity = 1500
-                sell_date = datetime.datetime.strptime(str("2023-10-11 00:00:00"), "%Y-%m-%d %H:%M:%S").date()
-                sell_avg = 16.900
+                sell_date = datetime.datetime.strptime(str("2023-10-19 00:00:00"), "%Y-%m-%d %H:%M:%S").date()
+                sell_avg = 4.01
 
             all_dict[index]['sell_qty'] = sell_quantity
             all_dict[index]['sell_date'] = sell_date
@@ -283,7 +283,7 @@ def main_page():
             df = pd.read_csv(fl, encoding="ISO-8859-1")
             invested_amount = int(st.number_input("Invested Amount"))
             if invested_amount == 0.00:
-                invested_amount = 220000
+                invested_amount = 320000
 
             col1, col2 = st.columns(2)
             df["symboldate"] = df["symbol"] + df["trade_date"]
