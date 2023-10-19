@@ -281,9 +281,7 @@ def main_page():
         if file_extension == 'csv':
             # Read CSV file directly from the bytes
             df = pd.read_csv(fl, encoding="ISO-8859-1")
-            invested_amount = int(st.number_input("Invested Amount"))
-            if invested_amount == 0.00:
-                invested_amount = 320000
+            #invested_amount = int(st.number_input("Invested Amount"))
 
             col1, col2 = st.columns(2)
             df["symboldate"] = df["symbol"] + df["trade_date"]
