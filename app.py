@@ -1,13 +1,12 @@
-import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-import pandas as pd
-import utills as util
-import css_styles as styles
 import datetime as datetime
 import numpy as np
+import hmac
 import firebase_admin
 from firebase_admin import credentials, firestore
+import streamlit as st
+import pandas as pd
 
 st.set_page_config(layout="wide")
 
@@ -16,12 +15,155 @@ positional_trades = ["DABUR23SEP590CE", "ABCAPITAL23OCT195CE", "ABCAPITAL23SEP22
                      "LICHSGFIN23OCT500CE", "SIEMENS23OCT3700CE", "SAIL23OCT93CE", "NMDC23OCT170CE",
                      "APOLLOTYRE23OCT400CE", "ZEEL23OCT315CE"]
 
+# Styles related to headers and generic text alignment
+header_style = """
+<style>
+    h1 {
+        text-align: center;
+    }
+</style>
+"""
+
+# Styles for text formatting and common design elements
+text_style = """
+<style>
+    /* Common font settings */
+    .big-font {
+        font-weight: bold;
+        font-size: 16px;
+        font-family: sans-serif;
+        color: #e0e0e0;  /* Light gray */
+    }
+
+    /* Card settings */
+    .custom-card {
+        background-color: #333333;  /* Dark gray */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Subtle shadow */
+    }
+
+    /* List settings inside card */
+    .custom-card ul {
+        list-style: disc inside;  /* Marker style and position */
+        padding-left: 20px;  /* Indentation */
+    }
+    .custom-card li {
+        margin-bottom: 10px;  /* Spacing between items */
+    }
+</style>
+"""
+
+# Styles for metric boxes and their content
+metric_style = """
+<style>
+    /* Generic styles for metrics */
+    .header, .value {
+        font-weight: bold;
+        color: #E0E0E0;
+    }
+
+    /* Styling for the container of metrics */
+    .metric {
+        border: 1px solid #FFFFFF;
+        background-color: #1A1A1A;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 5px 0;
+        height: 90px;
+        text-align: center;
+    }
+
+    /* Text formatting within the metric boxes */
+    .header {
+        font-size: 1.2em;
+    }
+    .value {
+        font-size: 1.5em;
+    }
+    .change {
+        font-size: 1em;
+        color: #FF4500;  /* Red-orange for emphasis */
+    }
+
+    /* Additional layout adjustments */
+    #pushed-content {
+        margin-top: 75px;  /* To avoid overlapping with other content */
+    }
+</style>
+"""
+
+
+def check_password():
+    def password_entered():
+        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct", False):
+        return True
+    st.text_input(
+        "Password", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error("😕 Password incorrect")
+    return False
+
+
+def empty_lines(n: int) -> None:
+    for _ in range(n):
+        st.write("")
+
+
+def percentage_difference(value_1, value_2):
+    return round(((value_1 - value_2) / ((value_1 + value_2) / 2)) * 100, 2)
+
+
+def required_profit_to_break_even(original_amount, amount):
+    profit = original_amount - amount
+    percentage_profit_needed = (profit / amount) * 100
+    return round(percentage_profit_needed, 2), round(profit)
+
+
+def initialize_firebase():
+    import json
+    key_dict = json.loads(st.secrets["textkey"])
+    cred = credentials.Certificate(key_dict)
+    try:
+        return firebase_admin.initialize_app(cred)
+    except ValueError as e:
+        return firebase_admin.get_app()
+
+
+def get_data_firebase():
+    app = initialize_firebase()
+    db = firestore.client()
+    data_dict = {}
+    users_ref = db.collection("trading_logs")
+    docs = users_ref.stream()
+    for doc in docs:
+        data_dict[doc.id] = doc.to_dict()
+    return pd.DataFrame(data_dict).T
+
+
+def custom_function(row):
+    # Guard against division by zero
+    denominator = row['A'] - row['B']
+    if denominator == 0:
+        result = "Undefined"  # or any other value that you see fit
+    else:
+        result = 1.0 + round((row['C'] - row['A']) / denominator, 2)
+        result = f"{result:.2f}"
+    return f"1:{result}"
+
 
 def main_page():
-    if not util.check_password():
+    if not check_password():
         st.stop()
 
-    st.markdown(styles.text_style, unsafe_allow_html=True)
+    st.markdown(text_style, unsafe_allow_html=True)
 
     # Basic card-like UI using expander without automatically expanding it.
     with st.expander("Rules", expanded=False):
@@ -79,7 +221,7 @@ def main_page():
                 sell_quantity = 1800
                 sell_date = datetime.datetime.strptime(str("2023-10-11 00:00:00"), "%Y-%m-%d %H:%M:%S").date()
                 sell_avg = 16.900
-            if symbol =="NIFTY23O1919650CE":
+            if symbol == "NIFTY23O1919650CE":
                 sell_quantity = 1500
                 sell_date = datetime.datetime.strptime(str("2023-10-11 00:00:00"), "%Y-%m-%d %H:%M:%S").date()
                 sell_avg = 16.900
@@ -193,14 +335,14 @@ def main_page():
 
 
 def page2():
-    if not util.check_password():
+    if not check_password():
         st.stop()
-    trades = util.get_data_firebase()
+
     # st.set_page_config(page_title="Financial Report", page_icon=":moneybag:", layout="wide")
-    st.markdown(styles.header_style, unsafe_allow_html=True)
+    st.markdown(header_style, unsafe_allow_html=True)
     st.title("Financial Report")
 
-    df = util.get_data_firebase()
+    df = get_data_firebase()
     invested_amount = st.number_input("Invested Amount", 0.00, 1000000.00, 320000.00)
     col1, col2 = st.columns(2)
     df["buy_date"] = pd.to_datetime(df["buy_date"], utc=True)
@@ -287,16 +429,16 @@ def page2():
     ).update_traces(marker=dict(size=12, color='red'), mode='lines+markers').update_layout(title_x=0.5)
     figure_1.update_layout(xaxis_type='date')
     current_amount = (invested_amount + total_profit) - amount_on_open_trade
-    percentage_needed, required_profit = util.required_profit_to_break_even(invested_amount - amount_on_open_trade,
-                                                                            current_amount)
-    percentage_needed_posit, required_profit_posit = util.required_profit_to_break_even(
+    percentage_needed, required_profit = required_profit_to_break_even(invested_amount - amount_on_open_trade,
+                                                                       current_amount)
+    percentage_needed_posit, required_profit_posit = required_profit_to_break_even(
         invested_amount - current_amount,
         amount_on_open_trade)
     percentage_needed = 0 if percentage_needed < 0 else percentage_needed
     required_profit = 0 if required_profit < 0 else required_profit
     max_daily_amount_used = df.groupby('buy_date')['amount_used'].max().reset_index()
-    util.empty_lines(1)
-    st.markdown(styles.metric_style, unsafe_allow_html=True)
+    empty_lines(1)
+    st.markdown(metric_style, unsafe_allow_html=True)
     col1, col2, col3 = st.columns([.75, .75, 1])
     with col1:
         metrics = {
@@ -317,7 +459,7 @@ def page2():
     with col2:
         metrics = {
             "Current Balance": [
-                round(current_amount, 2), util.percentage_difference(current_amount, invested_amount)],
+                round(current_amount, 2), percentage_difference(current_amount, invested_amount)],
             "Amount Required to BreakEven": [required_profit, ""],
             "Expected Return": [percentage_needed_posit, ""],
             "Max Profit": [max_profit, ""],
@@ -338,9 +480,9 @@ def page2():
 
         fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker=dict(colors=colors))])
         st.plotly_chart(fig)
-    util.empty_lines(3)
+    empty_lines(3)
     st.plotly_chart(figure, use_container_width=True)
-    util.empty_lines(3)
+    empty_lines(3)
     st.plotly_chart(figure_1, use_container_width=True)
     # Convert the sell_date column to datetime format
 
@@ -388,7 +530,8 @@ def page2():
     col_1, col_2 = st.columns([.95, .85])
     with col_1:
         st.dataframe(
-            df[["SYMBOL", "buy_date", "buy_qty", "buy_avg", "sell_date","sell_avg", "P/L", "Percentage_Difference", ]].reset_index(
+            df[["SYMBOL", "buy_date", "buy_qty", "buy_avg", "sell_date", "sell_avg", "P/L",
+                "Percentage_Difference", ]].reset_index(
                 drop=True))
 
     with col_2:
