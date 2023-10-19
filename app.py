@@ -314,24 +314,26 @@ def main_page():
             except ValueError as e:
                 app = firebase_admin.get_app()
             db = firestore.client()
-            # Iterate through the DataFrame and add each row as a document
-            for index, row in df.iterrows():
-                doc_ref = db.collection("trading_logs").document(row["SYMBOL"] + str(row["buy_date"]).replace("/", "-"))
-                print(row["SYMBOL"] + str(row["buy_date"]))
-                print(row["sell_date"])
-                doc_ref.set({"SYMBOL": row["SYMBOL"], "buy_qty": row["buy_qty"],
+            with st.spinner('Wait for it...'):
+                # Iterate through the DataFrame and add each row as a document
+                for index, row in df.iterrows():
+                    doc_ref = db.collection("trading_logs").document(row["SYMBOL"] + str(row["buy_date"]).replace("/", "-"))
+                    print(row["SYMBOL"] + str(row["buy_date"]))
+                    print(row["sell_date"])
+                    doc_ref.set({"SYMBOL": row["SYMBOL"], "buy_qty": row["buy_qty"],
 
-                             "buy_date": datetime.datetime.combine(row["buy_date"], datetime.time.min),
-                             "buy_avg": row["buy_avg"],
-                             "sell_qty": row["sell_qty"],
+                                 "buy_date": datetime.datetime.combine(row["buy_date"], datetime.time.min),
+                                 "buy_avg": row["buy_avg"],
+                                 "sell_qty": row["sell_qty"],
 
-                             "sell_date": datetime.datetime.combine(row["sell_date"], datetime.time.min),
-                             "sell_avg": row["sell_avg"], "P/L": 0,
-                             "Point_Difference": 0, "Percentage_Difference": 0,
-                             "amount_used": 0})
+                                 "sell_date": datetime.datetime.combine(row["sell_date"], datetime.time.min),
+                                 "sell_avg": row["sell_avg"], "P/L": 0,
+                                 "Point_Difference": 0, "Percentage_Difference": 0,
+                                 "amount_used": 0})
 
-            # Optionally, you can delete the app after using it if it's not needed elsewhere.
-            firebase_admin.delete_app(app)
+                # Optionally, you can delete the app after using it if it's not needed elsewhere.
+                firebase_admin.delete_app(app)
+            st.success('Uploaded!')
 
 
 def page2():
@@ -341,8 +343,9 @@ def page2():
     # st.set_page_config(page_title="Financial Report", page_icon=":moneybag:", layout="wide")
     st.markdown(header_style, unsafe_allow_html=True)
     st.title("Financial Report")
-
-    df = get_data_firebase()
+    with st.spinner('Downloading...'):
+        df = get_data_firebase()
+    st.success('Data Downloaded')
     invested_amount = st.number_input("Invested Amount", 0.00, 1000000.00, 320000.00)
     col1, col2 = st.columns(2)
     df["buy_date"] = pd.to_datetime(df["buy_date"], utc=True)
